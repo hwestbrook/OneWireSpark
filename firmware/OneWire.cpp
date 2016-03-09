@@ -2,6 +2,10 @@
 
 Particle Verison of OneWire Libary
 
+hwestbrook 3/9/2016
+Changed timings so they are not at the pure minimum. This was causing issues with sensors
+on longer cables.
+
 Hotaman 2/1/2016
 Bit and Byte write functions have been changed to only drive the bus high at the end of a byte when requested.
 They no longer drive the bus for High bits when outputting to avoid a holy war.
@@ -16,10 +20,10 @@ Support for Photon added by Brendan Albano and cdrodriguez
 I made monor tweeks to allow use in the web builder and created this repository for
 use in the contributed libs list.
 
-6/2014 - Hotaman 
+6/2014 - Hotaman
 
-I've taken the code that Spark Forum user tidwelltimj posted 
-split it back into separte code and header files and put back in the 
+I've taken the code that Spark Forum user tidwelltimj posted
+split it back into separte code and header files and put back in the
 credits and comments and got it compiling on the command line within SparkCore core-firmware
 
 
@@ -177,18 +181,27 @@ uint8_t OneWire::reset(void)
     pinModeFastOutput();   // drive output low
 
     interrupts();
-    delayMicroseconds(480);
+
+    /* timing
+      from datasheet
+    |---master_tx_reset >= 480---||--master_wait > 60-------||--master_rx--||------master_wait---------------------|
+    |---slave_rx_reset >= 480----||---slave_wait = 15-60--||--slave_send_low = 60-240--||--slave_wait = remainder--|
+
+    */
+
+    delayMicroseconds(520); // min in datasheet is 480uS
     noInterrupts();
 
     pinModeFastInput();    // allow it to float
 
-    delayMicroseconds(70);
+    delayMicroseconds(90); // was 70 here
 
     r =! digitalReadFast();
 
     interrupts();
 
-    delayMicroseconds(410);
+    // time has to add up to more than 480, doing 520 here
+    delayMicroseconds(430);
 
     return r;
 }
@@ -201,26 +214,26 @@ void OneWire::write_bit(uint8_t v)
         digitalWriteFastLow();
         pinModeFastOutput();   // drive output low
 
-        delayMicroseconds(10);
+        delayMicroseconds(6); // max of 15us
 
         pinModeFastInput();    // float high
 
         interrupts();
 
-        delayMicroseconds(55);
+        delayMicroseconds(54); // min of 60us
     } else {
         noInterrupts();
 
         digitalWriteFastLow();
         pinModeFastOutput();   // drive output low
 
-        delayMicroseconds(65);
+        delayMicroseconds(54); // min 15, typ 30, max 60
 
         pinModeFastInput();    // float high
 
         interrupts();
 
-        delayMicroseconds(5);
+        delayMicroseconds(6); // doesnt really matter, just needs to be more than 1
     }
 }
 
@@ -232,21 +245,23 @@ uint8_t OneWire::read_bit(void)
 {
     uint8_t r;
 
+    delayMicroseconds(2); // allow for recovery, as least 1us
+
     noInterrupts();
 
     digitalWriteFastLow();
     pinModeFastOutput();
 
-    delayMicroseconds(3);
+    delayMicroseconds(5); // min is 1us
 
     pinModeFastInput();    // let pin float, pull up will raise
 
-    delayMicroseconds(10);
+    delayMicroseconds(8); // this needs to come before the 15th us
 
     r = digitalReadFast();
 
     interrupts();
-    delayMicroseconds(53);
+    delayMicroseconds(47); // max time of full reading is 60us
 
     return r;
 }
@@ -258,7 +273,7 @@ uint8_t OneWire::read_bit(void)
 // go tri-state at the end of the write to avoid heating in a short or
 // other mishap.
 //
-void OneWire::write(uint8_t v, uint8_t power /* = 0 */) 
+void OneWire::write(uint8_t v, uint8_t power /* = 0 */)
 {
     uint8_t bitMask;
 
@@ -276,7 +291,7 @@ void OneWire::write(uint8_t v, uint8_t power /* = 0 */)
     }
 }
 
-void OneWire::write_bytes(const uint8_t *buf, uint16_t count, bool power /* = 0 */) 
+void OneWire::write_bytes(const uint8_t *buf, uint16_t count, bool power /* = 0 */)
 {
     for (uint16_t i = 0 ; i < count ; i++)
         write(buf[i]);
@@ -294,7 +309,7 @@ void OneWire::write_bytes(const uint8_t *buf, uint16_t count, bool power /* = 0 
 //
 // Read a byte
 //
-uint8_t OneWire::read() 
+uint8_t OneWire::read()
 {
     uint8_t bitMask;
     uint8_t r = 0;
@@ -306,7 +321,7 @@ uint8_t OneWire::read()
     return r;
 }
 
-void OneWire::read_bytes(uint8_t *buf, uint16_t count) 
+void OneWire::read_bytes(uint8_t *buf, uint16_t count)
 {
     for (uint16_t i = 0 ; i < count ; i++)
         buf[i] = read();
