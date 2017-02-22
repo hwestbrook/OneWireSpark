@@ -154,19 +154,9 @@ sample code bearing this copyright.
 #include "OneWire.h"
 #include "application.h"
 
-OneWire::OneWire(uint16_t pinRx) {
-  OneWire::init(pinRx, pinRx);
-}
-
-OneWire::OneWire(uint16_t pinRx, uint16_t pinTx) {
-  OneWire::init(pinRx, pinTx);
-}
-
-void OneWire::init(uint16_t pinRx, uint16_t pinTx) {
-  pinMode(pinTx, OUTPUT);
-  pinMode(pinRx, INPUT);
-  _pinRx = pinRx;
-  _pinTx = pinTx;
+OneWire::OneWire(uint16_t pin) {
+  pinMode(pin, INPUT);
+  _pin = pin;
 }
 // Perform the onewire reset function.  We will wait up to 250uS for
 // the bus to come high, if it doesn't then it is broken or shorted

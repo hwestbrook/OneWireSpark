@@ -26,24 +26,21 @@
 
 class OneWire {
  private:
-  uint16_t _pinRx;
-  uint16_t _pinTx;
-
-  void init(uint16_t pinRx, uint16_t pinTx);
+  uint16_t _pin;
 
 /**************Conditional fast pin access for Core and Photon*****************/
 #if PLATFORM_ID == 0  // Core
   inline void digitalWriteFastLow() {
-    PIN_MAP[_pinTx].gpio_peripheral->BRR = PIN_MAP[_pinTx].gpio_pin;
+    PIN_MAP[_pin].gpio_peripheral->BRR = PIN_MAP[_pin].gpio_pin;
   }
 
   inline void digitalWriteFastHigh() {
-    PIN_MAP[_pinTx].gpio_peripheral->BSRR = PIN_MAP[_pinTx].gpio_pin;
+    PIN_MAP[_pin].gpio_peripheral->BSRR = PIN_MAP[_pin].gpio_pin;
   }
 
   inline void pinModeFastOutput() {
-    GPIO_TypeDef *gpio_port = PIN_MAP[_pinTx].gpio_peripheral;
-    uint16_t gpio_pin = PIN_MAP[_pinTx].gpio_pin;
+    GPIO_TypeDef *gpio_port = PIN_MAP[_pin].gpio_peripheral;
+    uint16_t gpio_pin = PIN_MAP[_pin].gpio_pin;
 
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -56,13 +53,13 @@ class OneWire {
     GPIO_InitStructure.GPIO_Pin = gpio_pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
     GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    PIN_MAP[_pinTx].pin_mode = OUTPUT;
+    PIN_MAP[_pin].pin_mode = OUTPUT;
     GPIO_Init(gpio_port, &GPIO_InitStructure);
   }
 
   inline void pinModeFastInput() {
-    GPIO_TypeDef *gpio_port = PIN_MAP[_pinRx].gpio_peripheral;
-    uint16_t gpio_pin = PIN_MAP[_pinRx].gpio_pin;
+    GPIO_TypeDef *gpio_port = PIN_MAP[_pin].gpio_peripheral;
+    uint16_t gpio_pin = PIN_MAP[_pin].gpio_pin;
 
     GPIO_InitTypeDef GPIO_InitStructure;
 
@@ -74,42 +71,44 @@ class OneWire {
 
     GPIO_InitStructure.GPIO_Pin = gpio_pin;
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
-    PIN_MAP[_pinRx].pin_mode = INPUT;
+    PIN_MAP[_pin].pin_mode = INPUT;
     GPIO_Init(gpio_port, &GPIO_InitStructure);
   }
 
   inline uint8_t digitalReadFast() {
-    return GPIO_ReadInputDataBit(PIN_MAP[_pinRx].gpio_peripheral,
-                                 PIN_MAP[_pinRx].gpio_pin);
+    return GPIO_ReadInputDataBit(PIN_MAP[_pin].gpio_peripheral,
+                                 PIN_MAP[_pin].gpio_pin);
   }
 
 #elif PLATFORM_ID == 6 || PLATFORM_ID == 8 || \
     PLATFORM_ID == 10  // Photon(P0),P1,Electron
+  STM32_Pin_Info *PIN_MAP =
+      HAL_Pin_Map();  // Pointer required for highest access speed
 
   inline void digitalWriteFastLow() {
-    pinSetFast(_pinTx);
+    PIN_MAP[_pin].gpio_peripheral->BSRRH = PIN_MAP[_pin].gpio_pin;
   }
 
   inline void digitalWriteFastHigh() {
-    pinResetFast(_pinTx);
+    PIN_MAP[_pin].gpio_peripheral->BSRRL = PIN_MAP[_pin].gpio_pin;
   }
 
   inline void pinModeFastOutput(void) {
     // This could probably be speed up by digging a little deeper past
     // the HAL_Pin_Mode function.
-    HAL_Pin_Mode(_pinTx, OUTPUT);
+    HAL_Pin_Mode(_pin, OUTPUT);
   }
 
   inline void pinModeFastInput(void) {
     // This could probably be speed up by digging a little deeper past
     // the HAL_Pin_Mode function.
-    HAL_Pin_Mode(_pinRx, INPUT);
+    HAL_Pin_Mode(_pin, INPUT);
   }
 
   inline uint8_t digitalReadFast(void) {
     // This could probably be speed up by digging a little deeper past
     // the HAL_GPIO_Read function.
-    return pinReadFast(_pinRx);
+    return HAL_GPIO_Read(_pin);
   }
 
 #else
@@ -127,8 +126,7 @@ class OneWire {
 #endif
 
  public:
-  OneWire(uint16_t pinRx);
-  OneWire(uint16_t pinRx, uint16_t pinTx);
+  OneWire(uint16_t pin);
 
   // Perform a 1-Wire reset cycle. Returns 1 if a device responds
   // with a presence pulse.  Returns 0 if there is no device or the
