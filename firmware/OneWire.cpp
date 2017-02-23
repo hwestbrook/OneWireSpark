@@ -154,9 +154,24 @@ sample code bearing this copyright.
 #include "OneWire.h"
 #include "application.h"
 
-OneWire::OneWire(uint16_t pin) {
-  pinMode(pin, INPUT);
-  _pin = pin;
+OneWire::OneWire(uint16_t pinRx) {
+  _pinRx = pinRx;
+  _pinTx = pinRx;
+}
+
+OneWire::OneWire(uint16_t pinRx, uint16_t pinTx) {
+  _pinRx = pinRx;
+  _pinTx = pinTx;
+}
+
+void OneWire::init() {
+  if (_pinRx != _pinTx)
+  {
+    pinMode(_pinTx, OUTPUT);
+    digitalWrite(_pinTx, LOW);
+  }
+  pinMode(_pinRx, INPUT);
+  
 }
 // Perform the onewire reset function.  We will wait up to 250uS for
 // the bus to come high, if it doesn't then it is broken or shorted
@@ -197,6 +212,8 @@ uint8_t OneWire::reset(void) {
   delayMicroseconds(520);  // min in datasheet is 480uS
   noInterrupts();
 
+
+  digitalWriteFastHigh();
   pinModeFastInput();  // allow it to float
 
   delayMicroseconds(90);  // was 70 here
@@ -220,6 +237,7 @@ void OneWire::write_bit(uint8_t v) {
 
     delayMicroseconds(6);  // max of 15us
 
+    digitalWriteFastHigh();
     pinModeFastInput();  // float high
 
     interrupts();
@@ -233,6 +251,7 @@ void OneWire::write_bit(uint8_t v) {
 
     delayMicroseconds(54);  // min 15, typ 30, max 60
 
+    digitalWriteFastHigh();
     pinModeFastInput();  // float high
 
     interrupts();
@@ -257,6 +276,7 @@ uint8_t OneWire::read_bit(void) {
 
   delayMicroseconds(5);  // min is 1us
 
+  digitalWriteFastHigh();
   pinModeFastInput();  // let pin float, pull up will raise
 
   delayMicroseconds(8);  // this needs to come before the 15th us
