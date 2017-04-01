@@ -223,7 +223,7 @@ uint8_t OneWire::reset(void) {
   interrupts();
 
   // time has to add up to more than 480, doing 520 here
-  delayMicroseconds(430);
+  delayMicroseconds(520);
 
   return r;
 }
@@ -235,21 +235,21 @@ void OneWire::write_bit(uint8_t v) {
     digitalWriteFastLow();
     pinModeFastOutput();  // drive output low
 
-    delayMicroseconds(6);  // max of 15us
+    delayMicroseconds(12);  // max of 15us
 
     digitalWriteFastHigh();
     pinModeFastInput();  // float high
 
     interrupts();
 
-    delayMicroseconds(54);  // min of 60us
+    delayMicroseconds(88);  // min of 60us
   } else {
     noInterrupts();
 
     digitalWriteFastLow();
     pinModeFastOutput();  // drive output low
 
-    delayMicroseconds(54);  // min 15, typ 30, max 60
+    delayMicroseconds(88);  // min 15, typ 30, max 60
 
     digitalWriteFastHigh();
     pinModeFastInput();  // float high
