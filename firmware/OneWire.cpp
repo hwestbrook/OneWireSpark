@@ -187,14 +187,10 @@ uint8_t OneWire::reset(void) {
   pinModeFastInput();
   interrupts();
   // wait until the wire is high... just in case
-  uint32_t timer = millis();
   do {
     if (--retries == 0) return 0;
     delayMicroseconds(2);
-  } while (
-    !digitalReadFast()
-    && millis() - timer < 2000
-  );
+  } while (!digitalReadFast());
 
   noInterrupts();
 
