@@ -183,21 +183,21 @@ uint8_t OneWire::reset(void) {
   uint8_t r;
   uint8_t retries = 125;
 
-  noInterrupts();
-  pinModeFastInput();
-  interrupts();
+  ATOMIC_BLOCK() {
+    pinModeFastInput();
+  }
   // wait until the wire is high... just in case
-  do {
-    if (--retries == 0) return 0;
-    delayMicroseconds(2);
-  } while (!digitalReadFast());
 
-  noInterrupts();
+    do {
+      if (--retries == 0) return 0;
+      delayMicroseconds(2);
+    } while (!digitalReadFast());
 
-  digitalWriteFastLow();
-  pinModeFastOutput();  // drive output low
 
-  interrupts();
+  ATOMIC_BLOCK() {
+    digitalWriteFastLow();
+    pinModeFastOutput();  // drive output low
+  }
 
   /* timing
     from datasheet
@@ -209,17 +209,15 @@ uint8_t OneWire::reset(void) {
   */
 
   delayMicroseconds(520);  // min in datasheet is 480uS
-  noInterrupts();
 
+  ATOMIC_BLOCK() {
+    digitalWriteFastHigh();
+    pinModeFastInput();  // allow it to float
 
-  digitalWriteFastHigh();
-  pinModeFastInput();  // allow it to float
+    delayMicroseconds(90);  // was 70 here
 
-  delayMicroseconds(90);  // was 70 here
-
-  r = !digitalReadFast();
-
-  interrupts();
+    r = !digitalReadFast();
+  }
 
   // time has to add up to more than 480, doing 520 here
   delayMicroseconds(520);
@@ -229,31 +227,31 @@ uint8_t OneWire::reset(void) {
 
 void OneWire::write_bit(uint8_t v) {
   if (v & 1) {
-    noInterrupts();
+    ATOMIC_BLOCK() {
 
-    digitalWriteFastLow();
-    pinModeFastOutput();  // drive output low
+      digitalWriteFastLow();
+      pinModeFastOutput();  // drive output low
 
-    delayMicroseconds(12);  // max of 15us
+      delayMicroseconds(12);  // max of 15us
 
-    digitalWriteFastHigh();
-    pinModeFastInput();  // float high
+      digitalWriteFastHigh();
+      pinModeFastInput();  // float high
 
-    interrupts();
+    }
 
     delayMicroseconds(88);  // min of 60us
   } else {
-    noInterrupts();
+    ATOMIC_BLOCK() {
 
-    digitalWriteFastLow();
-    pinModeFastOutput();  // drive output low
+      digitalWriteFastLow();
+      pinModeFastOutput();  // drive output low
 
-    delayMicroseconds(88);  // min 15, typ 30, max 60
+      delayMicroseconds(88);  // min 15, typ 30, max 60
 
-    digitalWriteFastHigh();
-    pinModeFastInput();  // float high
+      digitalWriteFastHigh();
+      pinModeFastInput();  // float high
 
-    interrupts();
+    }
 
     delayMicroseconds(6);  // doesnt really matter, just needs to be more than 1
   }
@@ -268,21 +266,19 @@ uint8_t OneWire::read_bit(void) {
 
   delayMicroseconds(2);  // allow for recovery, as least 1us
 
-  noInterrupts();
+  ATOMIC_BLOCK() {
+    digitalWriteFastLow();
+    pinModeFastOutput();
 
-  digitalWriteFastLow();
-  pinModeFastOutput();
+    delayMicroseconds(5);  // min is 1us
 
-  delayMicroseconds(5);  // min is 1us
+    digitalWriteFastHigh();
+    pinModeFastInput();  // let pin float, pull up will raise
 
-  digitalWriteFastHigh();
-  pinModeFastInput();  // let pin float, pull up will raise
+    delayMicroseconds(8);  // this needs to come before the 15th us
 
-  delayMicroseconds(8);  // this needs to come before the 15th us
-
-  r = digitalReadFast();
-
-  interrupts();
+    r = digitalReadFast();
+  }
   delayMicroseconds(47);  // max time of full reading is 60us
 
   return r;
@@ -303,12 +299,10 @@ void OneWire::write(uint8_t v, uint8_t power /* = 0 */) {
   }
 
   if (power) {
-    noInterrupts();
-
-    digitalWriteFastHigh();
-    pinModeFastOutput();  // Drive pin High when power is True
-
-    interrupts();
+    ATOMIC_BLOCK() {
+      digitalWriteFastHigh();
+      pinModeFastOutput();  // Drive pin High when power is True
+    }
   }
 }
 
@@ -317,12 +311,10 @@ void OneWire::write_bytes(const uint8_t *buf, uint16_t count,
   for (uint16_t i = 0; i < count; i++) write(buf[i]);
 
   if (power) {
-    noInterrupts();
-
-    digitalWriteFastHigh();
-    pinModeFastOutput();  // Drive pin High when power is True
-
-    interrupts();
+    ATOMIC_BLOCK() {
+      digitalWriteFastHigh();
+      pinModeFastOutput();  // Drive pin High when power is True
+    }
   }
 }
 
@@ -363,11 +355,9 @@ void OneWire::skip() {
 }
 
 void OneWire::depower() {
-  noInterrupts();
-
-  pinModeFastInput();
-
-  interrupts();
+  ATOMIC_BLOCK() {
+    pinModeFastInput();
+  }
 }
 
 #if ONEWIRE_SEARCH
