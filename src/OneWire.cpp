@@ -308,6 +308,9 @@ void OneWire::write(uint8_t v, uint8_t power /* = 0 */) {
     digitalWriteFastHigh();
     pinModeFastOutput();  // Drive pin High when power is True
 
+    digitalWriteFastHighPU();
+    pinModeFastOutputPU();
+
     interrupts();
   }
 }

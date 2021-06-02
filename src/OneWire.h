@@ -110,6 +110,20 @@ class OneWire {
     return pinReadFast(_pinRx);
   }
 
+  inline void digitalWriteFastLowPU() {
+    pinResetFast(_pinRx);
+  }
+
+  inline void digitalWriteFastHighPU() {
+    pinSetFast(_pinRx);
+  }
+
+  inline void pinModeFastOutputPU(void) {
+    // This could probably be speed up by digging a little deeper past
+    // the HAL_Pin_Mode function.
+    HAL_Pin_Mode(_pinRx, OUTPUT);
+  }
+
 #else
 #error \
     "*** PLATFORM_ID not supported by this library. PLATFORM should be Core, Photon, P1 or Electron ***"
